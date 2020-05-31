@@ -7,6 +7,12 @@ import {
 
 export class Model {
   constructor() {
+    //Def Observer
+    this.observers = [];
+    this.addObserver = function(observer) {
+      this.observers.push(observer);
+    };
+    //Fin Def Observer
     this.width = GAME_SIZE;
     this.height = GAME_SIZE;
     this.raf = null;
@@ -24,16 +30,30 @@ export class Model {
 
   run(date = new Date().getTime()) {
     this.raf = requestAnimationFrame(() => {
+      const copyState = this.state.map(function(arr) {
+        return arr.slice();
+      });
       const currentTime = new Date().getTime();
       if (currentTime - date > RENDER_INTERVAL) {
-
         for (let i = 0; i < this.width; i++) {
           for (let j = 0; j < this.width; j++) {
             const nbAlive = this.aliveNeighbours(i, j);
             // TODO implement Game of life logic
+            switch (nbAlive) {
+              case 2:
+                break;
+              case 3:
+                copyState[j][i] = CELL_STATES.ALIVE;
+                break;
+              default:
+                if (this.isCellAlive(i, j)) {
+                  copyState[j][i] = CELL_STATES.DEAD;
+                }
+                break;
+            }
           }
         }
-
+        this.state = Array.from(copyState);
         this.updated();
         this.run(currentTime);
       } else {
@@ -48,7 +68,8 @@ export class Model {
   }
 
   reset() {
-    // TODO
+    this.stop();
+    this.init();
   }
 
   isCellAlive(x, y) {
@@ -63,10 +84,22 @@ export class Model {
   aliveNeighbours(x, y) {
     let number = 0;
     // TODO
+    for (let i = x - 1; i < x + 2; i++) {
+      for (let j = y - 1; j < y + 2; j++) {
+        if (i !== x || j !== y) {
+          number += this.isCellAlive(i, j);
+        }
+      }
+    }
     return number;
   }
 
+  //Notify
   updated() {
     // TODO update the view
+    var self = this;
+    this.observers.forEach(function(observer) {
+      observer.drawGame(self);
+    });
   }
 }
